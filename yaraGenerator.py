@@ -107,8 +107,12 @@ def emailParse(filename):
         sys.exit(1) 
 
 def linkSearch(attachment):
-                urls = list(set(re.compile('(?:ftp|hxxp)[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', re.I).findall(attachment)))
-                return urls
+  return list(
+      set(
+          re.compile(
+              '(?:ftp|hxxp)[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
+              re.I,
+          ).findall(attachment)))
 
 #Simple String / ASCII Wide and URL string extraction 
 def getStrings(filename):
@@ -141,10 +145,10 @@ def md5sum(filename):
   fh = open(filename, 'rb')
   m = hashlib.md5()
   while True:
-      data = fh.read(8192)
-      if not data:
-          break
+    if data := fh.read(8192):
       m.update(data)
+    else:
+      break
   return m.hexdigest() 
 
 
@@ -154,18 +158,15 @@ def findCommonStrings(fileDict, filetype):
   finalStringList = []
   matchNumber = len(fileDict)
   for s in baseStringList:
-  	sNum = 0
-  	for key, value in fileDict.iteritems():
-  		if s in value:
-  			sNum +=1
-  	if sNum == matchNumber:
-  		finalStringList.append(s)
+    sNum = sum(s in value for key, value in fileDict.iteritems())
+    if sNum == matchNumber:
+    	finalStringList.append(s)
 
   #import and use filetype specific blacklist/regexlist to exclude unwanted sig material
   #Various utility functions to extract strings/data/info and isolate signature material
-  with open(pathname +'/modules/'+filetype+'_blacklist.txt') as f:
+  with open(f'{pathname}/modules/{filetype}_blacklist.txt') as f:
     blacklist = f.read().splitlines()
-  with open(pathname +'/modules/'+filetype+'_regexblacklist.txt') as f:
+  with open(f'{pathname}/modules/{filetype}_regexblacklist.txt') as f:
     regblacklist = f.read().splitlines()
   #Match Against Blacklist
   for black in blacklist:
@@ -176,7 +177,7 @@ def findCommonStrings(fileDict, filetype):
     for string in finalStringList:
       regex = re.compile(regblack) 
       if regex.search(string): regmatchlist.append(string)
-  if len(regmatchlist) > 0:
+  if regmatchlist:
     for match in list(set(regmatchlist)):
       finalStringList.remove(match)
 
@@ -239,38 +240,32 @@ def unknownFile(fileDict):
   #Unknown is the default and will mirror executable excepting the blacklist
   for fhash, path in fileDict.iteritems():
     fileDict[fhash] = getStrings(path)
-  finalStringList = findCommonStrings(fileDict, 'unknown')
-  return finalStringList
+  return findCommonStrings(fileDict, 'unknown')
 
 def exeFile(fileDict):
   for fhash, path in fileDict.iteritems():
     fileDict[fhash] = exeImportsFuncs(path, getStrings(path))
-  finalStringList = findCommonStrings(fileDict, 'exe')
-  return finalStringList
+  return findCommonStrings(fileDict, 'exe')
 
 def pdfFile(fileDict):
   for fhash, path in fileDict.iteritems():
     fileDict[fhash] = getStrings(path)
-  finalStringList = findCommonStrings(fileDict, 'pdf')
-  return finalStringList
+  return findCommonStrings(fileDict, 'pdf')
 
 def emailFile(fileDict):
   for fhash, path in fileDict.iteritems():
     fileDict[fhash] = emailParse(path)
-  finalStringList = findCommonStrings(fileDict, 'email')
-  return finalStringList
+  return findCommonStrings(fileDict, 'email')
 
 def officeFile(fileDict):
   for fhash, path in fileDict.iteritems():
     fileDict[fhash] = getStrings(path)
-  finalStringList = findCommonStrings(fileDict, 'office')
-  return finalStringList
+  return findCommonStrings(fileDict, 'office')
 
 def jshtmlFile(fileDict):
   for fhash, path in fileDict.iteritems():
     fileDict[fhash] = getStrings(path)
-  finalStringList = findCommonStrings(fileDict, 'jshtml')
-  return finalStringList
+  return findCommonStrings(fileDict, 'jshtml')
 
 #Main
 def main():
